@@ -4,11 +4,18 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 import time
+import requests
+import json
+import os
+from dotenv import load_dotenv
+
+load_dotenv('variables.env')
+sheetUrl = os.getenv("URL")
+
 
 # create a new Chrome session
 driver = webdriver.Chrome()
 driver.implicitly_wait(30)
-driver.maximize_window()
 
 # navigate to the application home page
 driver.get("http://www.google.com")
@@ -28,23 +35,39 @@ time.sleep(2)
 
 # wait for the search results to be loaded
 wait = WebDriverWait(driver, 10)
-price_elements = wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, "pla-unit-container")))
+priceElements = wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, "pla-unit-container")))
 
-for element in price_elements:
+dataToSheets = {
+    "boards" : [],
+}
+
+for element in priceElements:
     data = element.text
-    if ('PC' in data or 'Pc' in data or 'pc' in data or 'Computador' in data or '3060' in data):
+    
+    if (data == '' or 'PC' in data or 'Pc' in data or 'pc' in data or 'Computador' in data or '3060' in data):
         continue
-    if (data == ''):
+    
+    data = data.replace('PROMOÇÃO\n', '') #TODO - adicionar aviso quando for promoção de alguma forma
+    
+    data_split = data.split('\n')
+    if len(data_split) < 3:
         continue
-    data = data.replace('PROMOÇÃO\n', '')
+
     boardName = data.split('\n')[0]
     boardName = boardName.split(',')[0]
     loja = data.split('\n')[2]
     price = data.rsplit('\n')[1]
     price = price.rpartition(',')[0]
-    # price_text.
-    print(f"NOME DA PLACA: {boardName}")
-    print(f"PRECO: {price}")
-    print(f"LOJA: {loja}")
-    print('---------------------------------')
-    time.sleep(1)
+
+    dataToSheets["boards"].append({
+        "boardName": boardName,
+        "price": price,
+        "loja": loja,
+    })
+
+driver.quit()
+
+print(dataToSheets)
+
+response = requests.post(sheetUrl, json=dataToSheets)
+print(response.reason)
