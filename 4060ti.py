@@ -12,7 +12,6 @@ from dotenv import load_dotenv
 load_dotenv('variables.env')
 sheetUrl = os.getenv("URL")
 
-
 # create a new Chrome session
 driver = webdriver.Chrome()
 driver.implicitly_wait(30)
@@ -67,7 +66,12 @@ for element in priceElements:
 
 driver.quit()
 
-print(dataToSheets)
+with open('boards.json', "w") as file:
+    json.dump(dataToSheets, file)
 
 response = requests.post(sheetUrl, json=dataToSheets)
-print(response.reason)
+print(response.content)
+
+response = requests.get(sheetUrl)
+print(response.content)
+
